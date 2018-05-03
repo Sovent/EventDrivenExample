@@ -1,14 +1,17 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Data;
 using System.Linq;
+using Dapper;
 using LanguageExt;
 
 namespace EventDrivenLib.Harness
 {
 	public abstract class AggregateRepository<T> where T: AggregateRoot
 	{
-		protected AggregateRepository(IEventPublisher publisher, IEventDescriber eventDescriber)
+		protected AggregateRepository(IDbConnection dbConnection, IEventPublisher publisher, IEventDescriber eventDescriber)
 		{
+			DbConnection = dbConnection ?? throw new ArgumentNullException(nameof(dbConnection));
 			_publisher = publisher ?? throw new ArgumentNullException(nameof(publisher));
 			_eventDescriber = eventDescriber ?? throw new ArgumentNullException(nameof(eventDescriber));
 		}
@@ -33,9 +36,21 @@ namespace EventDrivenLib.Harness
 
 		private void ApplyEvents(IEnumerable<EventDescription> descriptions)
 		{
-			//todo: implement
-			throw new NotImplementedException();
+			using (var transaction = DbConnection.BeginTransaction())
+			{
+				foreach (var eventDescription in descriptions)
+				{
+					DbConnection.Execute(
+						eventDescription.SqlRequest,
+						eventDescription.Parameters.FirstOrDefault(),
+						transaction);
+				}
+
+				transaction.Commit();
+			}
 		}
+
+		protected readonly IDbConnection DbConnection;
 
 		private readonly IEventPublisher _publisher;
 		private readonly IEventDescriber _eventDescriber;
