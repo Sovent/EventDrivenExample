@@ -9,7 +9,7 @@ namespace EventDrivenLib.Harness
 			_pendingEvents = new List<DomainEvent>();
 		}
 
-		public void AddEvent(DomainEvent @event)
+		protected void AddEvent(DomainEvent @event)
 		{
 			_pendingEvents.Add(@event);
 		}
